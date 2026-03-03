@@ -60,7 +60,10 @@ async function requestPublicJson(url, options = {}, fallbackError = 'Erro na req
   const response = await fetch(url, options);
 
   if (!response.ok) {
-    throw new Error(await parseError(response, fallbackError));
+    const message = await parseError(response, fallbackError);
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
   }
 
   if (response.status === 204) {
@@ -268,5 +271,16 @@ export function createPublicAudienceRequest(token, payload) {
       body: JSON.stringify(payload),
     },
     'Falha ao enviar pedido.'
+  );
+}
+
+export function toggleAudienceRequests(setlistId, isActive) {
+  return requestJson(
+    `${REPERTOIRE_API_BASE_URL}/setlists/${setlistId}/audience-link/`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active: isActive }),
+    },
+    'Falha ao alterar pedidos do publico.'
   );
 }

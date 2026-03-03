@@ -25,6 +25,7 @@ function PublicRequestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     async function loadSetlist() {
@@ -41,7 +42,11 @@ function PublicRequestPage() {
         setIsValidLink(true);
       } catch (error) {
         setIsValidLink(false);
-        setErrorMessage(error.message || 'Nao foi possivel carregar o repertorio.');
+        if (error.status === 403) {
+          setIsPaused(true);
+        } else {
+          setErrorMessage(error.message || 'Nao foi possivel carregar o repertorio.');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -81,6 +86,9 @@ function PublicRequestPage() {
         <p>Preencha o formulario e envie sua sugestao para o palco.</p>
         {isLoading ? <p>Carregando pagina...</p> : null}
         {errorMessage ? <p className="error">{errorMessage}</p> : null}
+        {isPaused ? (
+          <p>O musico pausou os pedidos no momento. Tente novamente mais tarde.</p>
+        ) : null}
         {successMessage ? <p className="success">{successMessage}</p> : null}
 
         {isValidLink ? (

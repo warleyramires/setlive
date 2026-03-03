@@ -236,6 +236,27 @@ class SetlistPublicLinkView(APIView):
             }
         )
 
+    def patch(self, request, setlist_id):
+        setlist = Setlist.objects.filter(user=request.user, id=setlist_id).first()
+        if not setlist:
+            return Response({"detail": "Repertorio nao encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+        public_link, _ = SetlistPublicLink.objects.get_or_create(setlist=setlist)
+        is_active = request.data.get("is_active")
+        if not isinstance(is_active, bool):
+            return Response({"detail": "Campo is_active deve ser booleano."}, status=status.HTTP_400_BAD_REQUEST)
+
+        public_link.is_active = is_active
+        public_link.save(update_fields=["is_active", "updated_at"])
+        return Response(
+            {
+                "setlist_id": setlist.id,
+                "token": public_link.token,
+                "public_url": _public_url_for_token(request, public_link.token),
+                "is_active": public_link.is_active,
+            }
+        )
+
 
 class SetlistAudienceRequestsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -274,14 +295,11 @@ class PublicSetlistView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, token):
-        public_link = (
-            SetlistPublicLink.objects.filter(token=token, is_active=True)
-            .select_related("setlist")
-            .first()
-        )
+        public_link = SetlistPublicLink.objects.filter(token=token).select_related("setlist").first()
         if not public_link:
             return Response({"detail": "Link publico invalido."}, status=status.HTTP_404_NOT_FOUND)
-
+        if not public_link.is_active:
+            return Response({"detail": "Pedidos pausados pelo musico."}, status=status.HTTP_403_FORBIDDEN)
         return Response(PublicSetlistSerializer(public_link.setlist).data)
 
 
@@ -289,9 +307,11 @@ class PublicAudienceRequestCreateView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, token):
-        public_link = SetlistPublicLink.objects.filter(token=token, is_active=True).select_related("setlist").first()
+        public_link = SetlistPublicLink.objects.filter(token=token).select_related("setlist").first()
         if not public_link:
             return Response({"detail": "Link publico invalido."}, status=status.HTTP_404_NOT_FOUND)
+        if not public_link.is_active:
+            return Response({"detail": "Pedidos pausados pelo musico."}, status=status.HTTP_403_FORBIDDEN)
 
         setlist = public_link.setlist
         serializer = PublicAudienceRequestCreateSerializer(data=request.data)

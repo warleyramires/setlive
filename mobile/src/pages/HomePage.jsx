@@ -9,6 +9,7 @@ import {
   deleteSetlistItem,
   getSetlist,
   getSetlistAudienceLink,
+  toggleAudienceRequests,
   listSetlistAudienceRequests,
   listSetlists,
   listSongs,
@@ -1197,6 +1198,24 @@ function HomePage() {
     }
   }
 
+  async function handleToggleRequests() {
+    if (!activeSetlistId || isSaving) {
+      return;
+    }
+    const nextActive = !audienceLink?.is_active;
+    setIsSaving(true);
+    setErrorMessage('');
+    try {
+      const updated = await toggleAudienceRequests(activeSetlistId, nextActive);
+      setAudienceLink(updated);
+      setSuccessMessage(updated.is_active ? 'Pedidos ativados.' : 'Pedidos pausados.');
+    } catch (error) {
+      setErrorMessage(error.message || 'Falha ao alterar pedidos do publico.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   function openStageMode(startIndex = 0) {
     if (!activeSetlist || stageItems.length === 0) {
       return;
@@ -1509,21 +1528,35 @@ function HomePage() {
             {!activeSetlist ? <p>Selecione um repertorio para liberar pedidos do publico.</p> : null}
             {activeSetlist && audienceLink ? (
               <>
-                <p>Compartilhe este link/QR com o publico:</p>
-                <div className="form-inline">
-                  <input value={audiencePublicUrl} readOnly />
-                  <button type="button" className="button-secondary" onClick={handleCopyPublicLink}>
-                    Copiar
-                  </button>
-                </div>
-                {audienceQrCodeUrl ? (
-                  <div className="qr-block">
-                    <img className="qr-image" src={audienceQrCodeUrl} alt="QR Code para pedidos do publico" />
-                    <a className="stage-link-button" href={audienceQrCodeUrl} target="_blank" rel="noreferrer">
-                      Abrir QR em tela cheia
-                    </a>
-                  </div>
-                ) : null}
+                <button
+                  type="button"
+                  className={audienceLink.is_active ? 'button-secondary button-sm' : 'button-primary button-sm'}
+                  onClick={handleToggleRequests}
+                  disabled={isSaving || !isOnline}
+                >
+                  {audienceLink.is_active ? 'Pausar pedidos' : 'Ativar pedidos'}
+                </button>
+                {audienceLink.is_active ? (
+                  <>
+                    <p>Compartilhe este link/QR com o publico:</p>
+                    <div className="form-inline">
+                      <input value={audiencePublicUrl} readOnly />
+                      <button type="button" className="button-secondary" onClick={handleCopyPublicLink}>
+                        Copiar
+                      </button>
+                    </div>
+                    {audienceQrCodeUrl ? (
+                      <div className="qr-block">
+                        <img className="qr-image" src={audienceQrCodeUrl} alt="QR Code para pedidos do publico" />
+                        <a className="stage-link-button" href={audienceQrCodeUrl} target="_blank" rel="noreferrer">
+                          Abrir QR em tela cheia
+                        </a>
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="muted">Pedidos pausados. O publico nao pode enviar pedidos no momento.</p>
+                )}
                 <p>Atualizacao automatica da fila: {queueConnectionStatus}</p>
                 <button
                   type="button"
