@@ -7,6 +7,7 @@ import {
   createSong,
   deleteSetlist,
   deleteSetlistItem,
+  fetchSongCifra,
   getSetlist,
   getSetlistAudienceLink,
   listSetlistAudienceRequests,
@@ -91,6 +92,11 @@ function HomePage() {
   const [isOnline, setIsOnline] = useState(() => window.navigator.onLine);
   const [isSyncingPending, setIsSyncingPending] = useState(false);
   const [pendingMutations, setPendingMutations] = useState(() => loadPendingMutations());
+
+  const [cifraContent, setCifraContent] = useState('');
+  const [cifraLoading, setCifraLoading] = useState(false);
+  const [cifraError, setCifraError] = useState('');
+  const [showCifra, setShowCifra] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -424,6 +430,10 @@ function HomePage() {
   }, [activeSetlist, isStageMode, stageItemIndex, stageItems.length]);
 
   useEffect(() => {
+    handleCloseCifra();
+  }, [stageItemIndex]);
+
+  useEffect(() => {
     if (!isStageMode) {
       return;
     }
@@ -543,6 +553,29 @@ function HomePage() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function handleOpenCifra(song) {
+    if (!song?.id) return;
+    setCifraLoading(true);
+    setCifraError('');
+    setCifraContent('');
+    setShowCifra(true);
+    try {
+      const data = await fetchSongCifra(song.id);
+      setCifraContent(data.content);
+    } catch (error) {
+      setCifraError(error.message || 'Falha ao buscar cifra.');
+    } finally {
+      setCifraLoading(false);
+    }
+  }
+
+  function handleCloseCifra() {
+    setShowCifra(false);
+    setCifraContent('');
+    setCifraError('');
+    setCifraLoading(false);
   }
 
   async function applyPendingMutation(mutation, idMaps) {
@@ -1262,14 +1295,14 @@ function HomePage() {
           <p className="stage-song-artist">{currentStageItem?.song.artist || 'Artista nao informado'}</p>
 
           <div className="stage-links">
-            <a
-              href={buildChordSearchUrl(currentStageItem?.song)}
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
               className="stage-link-button"
+              onClick={() => handleOpenCifra(currentStageItem?.song)}
+              disabled={!currentStageItem?.song || cifraLoading}
             >
-              Abrir cifra
-            </a>
+              {cifraLoading ? 'Carregando...' : 'Abrir cifra'}
+            </button>
             <button
               type="button"
               className="stage-link-button"
@@ -1287,6 +1320,24 @@ function HomePage() {
               Abrir letra
             </a>
           </div>
+
+          {showCifra && (
+            <div className="stage-cifra">
+              <div className="stage-cifra-header">
+                <strong>Cifra</strong>
+                <button type="button" className="button-sm button-secondary" onClick={handleCloseCifra}>
+                  Fechar cifra
+                </button>
+              </div>
+              {cifraError && <p className="stage-cifra-error">{cifraError}</p>}
+              {cifraLoading && <p className="stage-cifra-loading">Carregando cifra...</p>}
+              {cifraContent && (
+                <div className="stage-cifra-content">
+                  <pre>{cifraContent}</pre>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="stage-nav">
             <button onClick={goToPreviousStageSong} disabled={stageItemIndex === 0}>

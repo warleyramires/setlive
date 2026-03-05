@@ -1,14 +1,25 @@
+import logging
+import re
+import unicodedata
+from datetime import timedelta
+
 from django.conf import settings
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Max
 from django.db.models import Q
+from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import AudienceRequest, Setlist, SetlistItem, SetlistPublicLink, Song
+from .cifra_scraper import fetch_cifra_text
+from .models import AudienceRequest, CifraCache, Setlist, SetlistItem, SetlistPublicLink, Song
+
+logger = logging.getLogger(__name__)
+
+CIFRA_CACHE_DAYS = 30
 from .serializers import (
     AddSetlistItemSerializer,
     AudienceRequestSerializer,
@@ -346,3 +357,50 @@ class PublicAudienceRequestCreateView(APIView):
         )
 
         return Response(AudienceRequestSerializer(audience_request).data, status=status.HTTP_201_CREATED)
+
+
+def _to_cifra_slug(value):
+    text = unicodedata.normalize("NFD", str(value or ""))
+    text = re.sub(r"[\u0300-\u036f]", "", text)
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9\s-]", "", text)
+    text = text.strip()
+    text = re.sub(r"\s+", "-", text)
+    text = re.sub(r"-+", "-", text)
+    return text
+
+
+class SongCifraView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        song = Song.objects.filter(id=pk, user=request.user).first()
+        if not song:
+            return Response({"detail": "Musica nao encontrada."}, status=status.HTTP_404_NOT_FOUND)
+
+        if song.chord_url:
+            url = song.chord_url
+        else:
+            artist_slug = _to_cifra_slug(song.artist or "desconhecido")
+            title_slug = _to_cifra_slug(song.title)
+            url = f"https://www.cifraclub.com.br/{artist_slug}/{title_slug}/imprimir.html"
+
+        cutoff = timezone.now() - timedelta(days=CIFRA_CACHE_DAYS)
+        cached = CifraCache.objects.filter(url=url, fetched_at__gte=cutoff).first()
+        if cached:
+            return Response({"url": url, "content": cached.content, "cached": True})
+
+        try:
+            content = fetch_cifra_text(url)
+        except Exception:
+            logger.exception("Failed to fetch cifra from %s", url)
+            return Response(
+                {"detail": "Falha ao buscar cifra no site externo."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        if not content.strip():
+            return Response({"detail": "Cifra nao encontrada na pagina."}, status=status.HTTP_404_NOT_FOUND)
+
+        CifraCache.objects.update_or_create(url=url, defaults={"content": content})
+        return Response({"url": url, "content": content, "cached": False})

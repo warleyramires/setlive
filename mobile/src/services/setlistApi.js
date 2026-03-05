@@ -192,6 +192,14 @@ export function deleteSetlistItem(itemId) {
   );
 }
 
+export function fetchSongCifra(songId) {
+  return requestJson(
+    `${REPERTOIRE_API_BASE_URL}/songs/${songId}/cifra/`,
+    {},
+    'Falha ao buscar cifra.'
+  );
+}
+
 export function getSetlistAudienceLink(setlistId) {
   return requestJson(
     `${REPERTOIRE_API_BASE_URL}/setlists/${setlistId}/audience-link/`,

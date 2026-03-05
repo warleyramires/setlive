@@ -10,6 +10,7 @@ from .views import (
     SetlistListCreateView,
     SetlistPublicLinkView,
     SetlistReorderView,
+    SongCifraView,
     SongDetailView,
     SongListCreateView,
 )
@@ -17,6 +18,7 @@ from .views import (
 urlpatterns = [
     path("songs/", SongListCreateView.as_view(), name="song-list-create"),
     path("songs/<int:pk>/", SongDetailView.as_view(), name="song-detail"),
+    path("songs/<int:pk>/cifra/", SongCifraView.as_view(), name="song-cifra"),
     path("setlists/", SetlistListCreateView.as_view(), name="setlist-list-create"),
     path("setlists/<int:pk>/", SetlistDetailView.as_view(), name="setlist-detail"),
     path("setlists/<int:setlist_id>/items/", SetlistAddItemView.as_view(), name="setlist-add-item"),
