@@ -66,6 +66,18 @@ class SetlistItem(models.Model):
         return f"{self.setlist.name} #{self.position} - {self.song.title}"
 
 
+class CifraCache(models.Model):
+    url = models.URLField(unique=True)
+    content = models.TextField()
+    fetched_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-fetched_at"]
+
+    def __str__(self):
+        return self.url
+
+
 class AudienceRequest(models.Model):
     setlist = models.ForeignKey(Setlist, on_delete=models.CASCADE, related_name="audience_requests")
     song = models.ForeignKey(Song, on_delete=models.CASCADE, related_name="audience_requests", null=True, blank=True)

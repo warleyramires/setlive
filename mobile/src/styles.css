@@ -483,6 +483,71 @@ button[disabled] {
   text-decoration: none;
 }
 
+.stage-cifra {
+  margin-top: 1.2rem;
+  border: 1px solid #1e3a6e;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #0a1225;
+}
+
+.stage-cifra-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.stage-cifra-header strong {
+  font-size: 1rem;
+  color: #c6d8f5;
+}
+
+.stage-cifra-header .button-secondary {
+  background: #1a2d52;
+  color: #c6d8f5;
+  border-color: #2a4a7a;
+}
+
+.stage-cifra-content {
+  max-height: 60vh;
+  overflow: auto;
+  border-radius: 8px;
+  background: #070e1c;
+  padding: 1rem;
+}
+
+.stage-cifra-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.stage-cifra-content::-webkit-scrollbar-thumb {
+  background: #2a4a7a;
+  border-radius: 999px;
+}
+
+.stage-cifra-content pre {
+  margin: 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(0.78rem, 1.4vw, 0.95rem);
+  line-height: 1.5;
+  color: #e0ecff;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.stage-cifra-error {
+  color: #f5a0b8;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.stage-cifra-loading {
+  color: #8eb4e8;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
 .stage-nav {
   margin-top: 1.45rem;
   display: grid;
